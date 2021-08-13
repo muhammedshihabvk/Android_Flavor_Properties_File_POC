@@ -1,0 +1,107 @@
+import java.util.regex.Matcher
+import java.util.regex.Pattern
+
+plugins {
+    id 'com.android.application'
+}
+
+
+
+ext {
+    flavor = getCurrentFlavor()
+    println("----F--->" + flavor)
+    if (flavor.isEmpty()) {
+        flavor = "uae"
+    }
+    println('config/' + flavor + "Version" + '.properties')
+    config = getProps('../config/' + flavor + "Version" + '.properties')
+    configPropData = config
+    println(configPropData["COUNTRY_NAME"])
+}
+
+def getProps(path) {
+    def Properties props = new Properties()
+    def propFile = file(path)
+    if (propFile.canRead()) {
+        props.load(new FileInputStream(propFile))
+    } else {
+        println("file not exist")
+    }
+    return props
+}
+
+def getCurrentFlavor() {
+    Gradle gradle = getGradle()
+    String tskReqStr = gradle.getStartParameter().getTaskRequests().toString()
+    Pattern pattern
+
+    if (tskReqStr.contains("assemble"))
+        pattern = Pattern.compile("assemble(\\w+)(Release|Debug)")
+    else
+        pattern = Pattern.compile("generate(\\w+)(Release|Debug)")
+
+    Matcher matcher = pattern.matcher(tskReqStr)
+
+    if (matcher.find())
+        return matcher.group(1).toLowerCase()
+    else {
+        println "NO MATCH FOUND"
+        return ""
+    }
+}
+
+android {
+    compileSdkVersion 30
+    buildToolsVersion "30.0.3"
+
+    defaultConfig {
+        applicationId "com.shabs.multiflavorapppoc"
+        minSdkVersion 25
+        targetSdkVersion 30
+        versionCode 1
+        versionName "1.0"
+
+        buildConfigField "String", "BUILD_NAME", configPropData["versionName"]
+        buildConfigField "String", "BUILD_URL", configPropData["BASE_URL"]
+        buildConfigField "String", "BUILD_COUNTRY", configPropData["COUNTRY_NAME"]
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            debuggable true
+            shrinkResources false
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+
+    }
+
+    flavorDimensions "version"
+    productFlavors {
+        dubai {
+            dimension "version"
+            versionNameSuffix ".dubai"
+        }
+        uae {
+            dimension "version"
+            versionNameSuffix ".uae"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+
+    implementation 'androidx.appcompat:appcompat:1.3.1'
+    implementation 'com.google.android.material:material:1.4.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
+    testImplementation 'junit:junit:4.+'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+}
